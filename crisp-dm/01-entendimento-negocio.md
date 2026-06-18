@@ -16,28 +16,50 @@ Projeto pessoal de **curadoria automatizada de notícias sobre orçamento públi
 - **Quem julga:** o próprio dono do projeto (critério subjetivo de satisfação pessoal).
 
 ## Inventário de recursos
-_(Tarefa 1.2 — pendente)_
+- **Execução/deploy:** ambiente gratuito, sem depender do PC do dono. **Decisão: GitHub Actions** (cron agendado, gratuito, já temos o repositório).
+- **Fontes de dados:** Google / Google Notícias (via Search API ou RSS gratuito do Google News).
+- **LLM:** Opus mais recente (`claude-opus-4-8`) via **OpenRouter**.
+- **Entrega:** bot do Telegram (a criar).
 
 ## Requisitos, premissas e restrições
-_(Tarefa 1.2 — pendente)_
+- **Requisito de prazo:** tem que funcionar **hoje**.
+- **Premissa:** custo de LLM é desprezível (centavos/dia para ~5–15 notícias).
+- **Restrições:** o mais gratuito possível; não rodar no PC do dono.
 
 ## Riscos e contingências
-_(Tarefa 1.2 — pendente)_
+| Risco | Contingência |
+|-------|--------------|
+| Fonte de notícias bloquear scraping / API esgotar cota grátis | Usar RSS gratuito do Google News (sem chave, ilimitado) |
+| Cron do GitHub Actions atrasar/pular execução | Tolerável (não é crítico); reexecução manual disponível |
+| Chave de API exposta | Guardar tudo em GitHub Actions Secrets (nunca no código) |
 
 ## Terminologia
-_(Tarefa 1.2 — pendente)_
+- **Radar:** narrativa-resumo diária gerada pelo LLM a partir das notícias do dia.
+- **Curadoria:** seleção das notícias relevantes (filtra ruído e repetição).
 
 ## Custos e benefícios
-_(Tarefa 1.2 — pendente)_
+- **Custos:** ~centavos/dia de tokens do LLM (OpenRouter). GitHub Actions e RSS gratuitos.
+- **Benefícios:** estar atualizado diariamente sobre orçamento público federal sem esforço manual.
 
 ## Metas de mineração de dados
-_(Tarefa 1.3 — pendente)_
+- **Tipo de problema:** seleção/classificação de relevância + sumarização (descrição/sumarização).
+- **Meta técnica:** dado o conjunto de notícias coletadas no dia sobre "orçamento público federal", produzir (a) uma narrativa-radar coesa e (b) a lista de links das notícias relevantes, sem repetição.
 
 ## Critérios de sucesso de dados
-_(Tarefa 1.3 — pendente)_
+- A narrativa cobre as notícias do dia sem inventar fatos (sem alucinação).
+- Sem duplicatas; sem itens fora do tema "orçamento público federal".
+- Saída entregue no Telegram toda manhã.
 
-## Plano do projeto
-_(Tarefa 1.4 — pendente)_
+## Plano do projeto (pipeline)
+1. **Coletar** notícias do dia (Google Notícias) sobre orçamento público federal.
+2. **Deduplicar** por título/URL.
+3. **Curar + narrar** com Opus 4.8 (OpenRouter): seleciona relevantes e escreve o "radar".
+4. **Formatar** saída (mensagem HTML no Telegram + links; PDF como evolução).
+5. **Enviar** ao Telegram (1 destinatário) — agendado via GitHub Actions, 1x/manhã.
 
 ## Avaliação inicial de ferramentas e técnicas
-_(Tarefa 1.4 — pendente)_
+- **Linguagem:** Python.
+- **Coleta:** `feedparser` (RSS do Google News) ou Search API.
+- **LLM:** OpenRouter → `anthropic/claude-opus-4.8` (confirmar slug no catálogo).
+- **Telegram:** API de Bot (`sendMessage` com `parse_mode=HTML`; `sendDocument` se PDF).
+- **Agendamento:** GitHub Actions (`schedule: cron`).
