@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import html
 import os
+import re
 import sys
 import urllib.parse
 import xml.etree.ElementTree as ET
@@ -157,11 +158,20 @@ def gerar_radar(noticias: list[dict]) -> str:
 # 3. Envio ao Telegram
 # ---------------------------------------------------------------------------
 
+def narrativa_para_html(texto: str) -> str:
+    """Converte a marcação leve (markdown) que o LLM possa emitir em HTML do Telegram."""
+    t = html.escape(texto)
+    t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)  # **negrito**
+    t = re.sub(r"__(.+?)__", r"<b>\1</b>", t)        # __negrito__
+    t = re.sub(r"(?m)^\s{0,3}#{1,6}\s*(.+)$", r"<b>\1</b>", t)  # # Título
+    return t
+
+
 def montar_mensagem(narrativa: str, noticias: list[dict]) -> str:
     """Monta a mensagem final em HTML para o Telegram."""
     data = datetime.now(FUSO_BR).strftime("%d/%m/%Y")
     partes = [f"<b>📡 Radar do Orçamento — {data}</b>", ""]
-    partes.append(html.escape(narrativa))
+    partes.append(narrativa_para_html(narrativa))
     partes.append("")
     partes.append("<b>🔗 Notícias</b>")
     for i, n in enumerate(noticias, 1):
