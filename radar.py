@@ -20,9 +20,9 @@ import html
 import os
 import sys
 import urllib.parse
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone, timedelta
 
-import feedparser
 import requests
 
 # ---------------------------------------------------------------------------
@@ -63,15 +63,26 @@ def url_rss_google_news(termo: str) -> str:
 
 
 def coletar_noticias() -> list[dict]:
-    """Coleta e deduplica notícias de todos os termos de busca."""
+    """Coleta e deduplica notícias de todos os termos de busca.
+
+    Parseia o RSS do Google Notícias com a biblioteca padrão (sem dependências
+    que precisem compilar).
+    """
     vistos: set[str] = set()
     noticias: list[dict] = []
 
     for termo in TERMOS_BUSCA:
-        feed = feedparser.parse(url_rss_google_news(termo))
-        for entrada in feed.entries:
-            titulo = (entrada.get("title") or "").strip()
-            link = (entrada.get("link") or "").strip()
+        try:
+            resp = requests.get(url_rss_google_news(termo), timeout=30)
+            resp.raise_for_status()
+            raiz = ET.fromstring(resp.content)
+        except (requests.RequestException, ET.ParseError) as erro:
+            print(f"  aviso: falha ao coletar '{termo}': {erro}")
+            continue
+
+        for item in raiz.findall(".//item"):
+            titulo = (item.findtext("title") or "").strip()
+            link = (item.findtext("link") or "").strip()
             if not titulo or not link:
                 continue
 
@@ -80,16 +91,15 @@ def coletar_noticias() -> list[dict]:
                 continue
             vistos.add(chave)
 
-            fonte = ""
-            if entrada.get("source") and entrada.source.get("title"):
-                fonte = entrada.source.title
+            elem_fonte = item.find("source")
+            fonte = (elem_fonte.text or "").strip() if elem_fonte is not None else ""
 
             noticias.append(
                 {
                     "titulo": titulo,
                     "link": link,
                     "fonte": fonte,
-                    "resumo": (entrada.get("summary") or "").strip(),
+                    "resumo": (item.findtext("description") or "").strip(),
                 }
             )
 
